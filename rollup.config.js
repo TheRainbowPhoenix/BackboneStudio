@@ -1,12 +1,16 @@
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import alias from '@rollup/plugin-alias';
+import typescript from '@rollup/plugin-typescript';
+
+const production = !process.env.ROLLUP_WATCH;
 
 export default {
-    input: 'src/index.js',
+    input: 'src/index.ts',
     output: {
-        file: 'bundle.js',
-        format: 'iife'
+        file: 'dist/bundle.js',
+        format: 'iife',
+        sourcemap: !production,
     },
     plugins: [
         /**
@@ -41,5 +45,9 @@ export default {
          * and do not have modules bundles available 
          */
         commonjs(),
+        typescript({
+            sourceMap: process.env.BUILD !== 'production',
+            inlineSources: process.env.BUILD !== 'production',
+        }),
     ]
 };

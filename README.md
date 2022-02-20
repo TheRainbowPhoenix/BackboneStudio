@@ -1,5 +1,10 @@
-# Rollup + PixiJS
+# BackBone Studio
 
-Minimum example using rollup and PixiJS with vanilla JavaScript.
+Simple Spine Viewer and Editor, fitting my needs.
 
-Please see **rollup.config.js** for more specifics.
+
+## Interesting links
+
+https://github.com/sbfkcel/pixi-spine-debug
+https://github.com/pixijs/spine
+https://www.photopea.com/

@@ -1,26 +1,33 @@
 {
-  "name": "pixi-rollup-example",
+  "name": "backbone-studio",
   "version": "1.0.0",
   "private": true,
-  "description": "Minimum usage with PixiJS and Rollup",
+  "description": "Simple Spine Viewer and Editor",
   "main": "index.js",
   "scripts": {
     "build": "rollup -c --environment BUILD:production",
+    "dev": "rollup -c -w",
     "watch": "rollup -cw"
   },
   "keywords": [
     "pixijs",
-    "rollup"
+    "rollup",
+    "Spine2D"
   ],
-  "author": "Matt Karl @bigtimebuddy",
+  "author": "Pho3",
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-alias": "^3.1.2",
     "@rollup/plugin-commonjs": "^19.0.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
-    "rollup": "^2.50.5"
+    "@rollup/plugin-typescript": "^8.0.0",
+    "pixi-spine": "^3.0.13",
+    "rollup": "^2.50.5",
+    "tslib": "^2.0.0",
+    "typescript": "^4.0.0"
   },
   "dependencies": {
+    "@pixi-spine/all-3.8": "^3.0.13",
     "pixi.js": "^6.0.4"
   }
 }
