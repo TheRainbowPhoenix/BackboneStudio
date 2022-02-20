@@ -1,5 +1,8 @@
 <script lang="ts">
-	import Canvas from "./components/Canvas.svelte";
+	import Timeline from "./components/Timeline.svelte";
+	import Header from "./components/Header.svelte";
+	import Editor from "./components/Editor.svelte";
+
 	export let name: string;
 
 	// TODO: i18n
@@ -7,17 +10,17 @@
 </script>
 
 <main>
-	<h1>{name}!</h1>
-	<Canvas />
-	<p>Visit the <a href="https://svelte.dev/tutorial">Svelte tutorial</a> to learn how to build Svelte apps.</p>
+	<Header />
+	<Editor/>
+	<Timeline/>
 </main>
 
 <style>
 	main {
 		text-align: center;
-		padding: 1em;
-		max-width: 240px;
+		padding: 0;
 		margin: 0 auto;
+		height: 100%;
 	}
 
 	@media (min-width: 640px) {
