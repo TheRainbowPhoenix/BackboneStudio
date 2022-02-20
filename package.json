@@ -5,9 +5,11 @@
   "description": "Simple Spine Viewer and Editor",
   "main": "index.js",
   "scripts": {
-    "build": "rollup -c --environment BUILD:production",
+    "build": "rollup -c",
     "dev": "rollup -c -w",
-    "watch": "rollup -cw"
+    "watch": "rollup -cw",
+    "start": "sirv public --no-clear",
+    "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "keywords": [
     "pixijs",
@@ -21,13 +23,22 @@
     "@rollup/plugin-commonjs": "^19.0.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
     "@rollup/plugin-typescript": "^8.0.0",
-    "pixi-spine": "^3.0.13",
+    "@tsconfig/svelte": "^2.0.0",
     "rollup": "^2.50.5",
+    "rollup-plugin-css-only": "^3.1.0",
+    "rollup-plugin-livereload": "^2.0.0",
+    "rollup-plugin-svelte": "^7.0.0",
+    "rollup-plugin-terser": "^7.0.0",
+    "svelte": "^3.0.0",
+    "svelte-check": "^2.0.0",
+    "svelte-preprocess": "^4.0.0",
     "tslib": "^2.0.0",
     "typescript": "^4.0.0"
   },
   "dependencies": {
     "@pixi-spine/all-3.8": "^3.0.13",
-    "pixi.js": "^6.0.4"
+    "pixi-spine": "^3.0.13",
+    "pixi.js": "^6.0.4",
+    "svelte-i18n": "^3.3.13"
   }
 }

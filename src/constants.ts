@@ -1,7 +1,7 @@
 // stage settings
 export const STAGES = {
-  WIDTH: 720,
-  HEIGHT: 480,
+  WIDTH: 800,
+  HEIGHT: 600,
   BG_COLOR: 0x000000
 };
 

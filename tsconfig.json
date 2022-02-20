@@ -1,37 +1,19 @@
 {
-  "include": ["src/**/*"],
+	"extends": "@tsconfig/svelte/tsconfig.json",
+	"include": ["src/**/*"],
 
-  "compilerOptions": {
+	"compilerOptions": {
 		"rootDir": "src",
 
 		// target node v8+ (https://node.green/)
 		// the only missing feature is Array.prototype.values
-		"lib": ["dom"],
-		"target": "es5",
-
-		"declaration": true,
-		"declarationDir": "types",
-
-		"noEmitOnError": true,
-		"noErrorTruncation": true,
-
-		// rollup takes care of these
-		"module": "esnext",
-		"moduleResolution": "node",
-		"esModuleInterop": true,
-		"resolveJsonModule": true,
-		"allowSyntheticDefaultImports": true,
-
-		// Hides exports flagged with @internal from the d.ts output
-		"stripInternal": true,
-
-		// TODO: error all the things
+		"target": "es2017",
+		"lib": ["esNext", "dom"],
+		"module": "esNext",
+		"noEmit": false,
 		"strict": true,
-		"noImplicitThis": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"typeRoots": ["./node_modules/@types"]
+		"moduleResolution": "node"
 	},
 
-  "exclude": ["node_modules/*", "__sapper__/*", "public/*"]
+	"exclude": ["node_modules/*", "__sapper__/*", "public/*"]
 }
