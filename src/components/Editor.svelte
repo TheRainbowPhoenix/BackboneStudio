@@ -3,18 +3,36 @@
     import {onMount} from 'svelte';
 
     import {Spine, SpineParser} from 'pixi-spine';
-    import {STAGES, GAMES} from "../constants";
-    import AnimationBrowser from "./editor/AnimationBrowser.svelte";
 
-    let WIDTH = STAGES.WIDTH;
-    let HEIGHT = STAGES.HEIGHT;
-    const BG_COLOR = STAGES.BG_COLOR;
+    import {game_config, stage_config} from "../libs/game_store.ts";
+    import AnimationBrowser from "./editor/AnimationBrowser.svelte";
+    import BaseTab from "./editor/BaseTab.svelte";
+    import SpeedTab from "./editor/SpeedTab.svelte";
+    import SkinsBrowser from "./editor/SkinsBrowser.svelte";
+    import Timeline from "./editor/animator/Timeline.svelte";
+
+    let inspector_visible: boolean = false;
+
+    let WIDTH;
+    let HEIGHT;
+    let BG_COLOR;
+
+    let fps;
+    let anime_loop;
+    let anime_time_scale;
 
     let view: HTMLCanvasElement;
     let renderer: PIXI.Renderer;
     let stage: PIXI.Container;
 
+    let current_spine: Spine;
+
+    let current_point_pos: { x: number; y: number } = {x: 0, y: 0};
+
     let loop = false;
+
+    let current_skin_name: string = null;
+    let current_scale: number = 100;
 
     let oldTime: number = Date.now();
     let ms: number;
@@ -22,7 +40,7 @@
     let animate = () => {
         let newTime: number = Date.now();
         let deltaTime: number = newTime - oldTime;
-        ms = Math.round(GAMES.FPS * COE);
+        ms = Math.round(fps * COE);
         // console.log("fps: " + GAMES.FPS + " " + "ms: " + ms);
         oldTime = newTime;
         deltaTime < 0 ? (deltaTime = 0) : deltaTime;
@@ -40,12 +58,18 @@
     const ASSET_SPINE1: string = "assets/spine/girl/Girl.json";
     const SPINEOBJ_NUM: number = 1; // now Fixed
     const anim_ary: string[] = [];
+    const skin_ary: string[] = [];
+    let current_model: any = {};
+    let current_animation: any = {};
     const spineLoaderOptions: object = {metadata: {spineSkeletonScale: 0.5}};
     let SP_HEIGHT: number;
     let spineObj: Spine[] = [];
     let isDragging: boolean = false;
 
     let animations: any[] = [];
+    let skins: any[] = [];
+
+    let resources: any;
 
     // json load
     // TODO: svelte fetch promise
@@ -56,55 +80,38 @@
         () => {
             jsonObj = req.response;
 
+            current_model = jsonObj;
+            console.log(current_model);
+
             // get Animation name
-            let names: string[] = [];
+            let animations_list: string[] = [];
+
+            console.debug(jsonObj);
 
             // Get animation name by key name
             Object.keys(jsonObj.animations).forEach((ele) => {
-                names.push(ele);
+                animations_list.push(ele);
                 anim_ary.push(ele);
             });
 
-            let leng: number = names.length;
-
             let count = 0;
-            animations = names.map(key => ({
+            skins = jsonObj.skins.map(key => {
+                skin_ary.push(key);
+
+                return {
+                    name: key.name,
+                    id: count++,
+                }
+            });
+
+            count = 0;
+            animations = animations_list.map(key => ({
                 name: key,
                 id: count++,
             }));
 
-            console.log(animations);
-
-            for (let i: number = 0; i < leng; i++) {
-
-                // animations.concat(`${names[i]}`);
-                // console.log(`${names[i]}`);
-
-                // if (i === 0) {
-                //   let divtemp: HTMLElement = <HTMLElement>document.createElement("div");
-                //   divtemp.textContent = " ";
-                //   document.body.appendChild(divtemp);
-                // }
-                //
-                // let button: HTMLButtonElement = <HTMLButtonElement>(
-                //   document.createElement("button")
-                // );
-                // button.textContent = `${names[i]}`;
-                // button.onclick = function () {
-                //   let animeObj: { [s: string]: number } = { animNum1: 0, animNum2: i };
-                //   playAnimation(animeObj);
-                // };
-                // document.body.appendChild(button);
-                //
-                // let divider: HTMLElement = <HTMLElement>document.createElement("span");
-                // divider.textContent = " ";
-                // document.body.appendChild(divider);
-                //
-                // let newLine: HTMLElement = <HTMLElement>document.createElement("br");
-                // if (i === leng - 1) {
-                //   document.body.appendChild(newLine);
-                // }
-            }
+            // console.log(animations);
+            // console.log(skins);
         },
         false
     );
@@ -131,7 +138,7 @@
      */
     const setTextFPS = () => {
         let text_fps = setText(
-            `FPS: ${GAMES.FPS}`,
+            `FPS: ${fps}`,
             "Arial",
             24,
             0x00cc00,
@@ -148,7 +155,7 @@
      */
     const setTextAnimeTimeScale = () => {
         let text_anime_time_scale = setText(
-            `Animation Time Scale: ${GAMES.ANIME_TIME_SCALE}`,
+            `Animation Time Scale: ${anime_time_scale}`,
             "Arial",
             24,
             0x00cc00,
@@ -168,7 +175,7 @@
             clearText(text_anime_loop);
         }
         text_anime_loop = setText(
-            `Animation Loop: ${GAMES.ANIME_LOOP}`,
+            `Animation Loop: ${anime_loop}`,
             "Arial",
             24,
             0x00cc00,
@@ -245,42 +252,80 @@
         });
     };
 
-    document.addEventListener("DOMContentLoaded", () => {
-        let button: any;
-        let btStart: number = 1;
-        let btMaxLength: number = 100;
+    // document.addEventListener("DOMContentLoaded", () => {
+    //     let button: any;
+    //     let btStart: number = 1;
+    //     let btMaxLength: number = 100;
+    //
+    //     for (let i: number = btStart; i <= btMaxLength; i++) {
+    //         if (document.getElementById(`myButton${i}`)) {
+    //             button = document.getElementById(`myButton${i}`);
+    //             if (button) {
+    //                 let num1: number = button.name.substring(0, 1); // spineObj[n]
+    //                 let num2: number = button.name.substring(1, 2); // ex: aim, death, idle ...
+    //                 button.addEventListener(
+    //                     "click",
+    //                     {
+    //                         animNum1: num1,
+    //                         animNum2: num2,
+    //                         handleEvent: playAnimation,
+    //                         this: button,
+    //                     },
+    //                     false
+    //                 );
+    //             }
+    //         }
+    //     }
+    // });
 
-        for (let i: number = btStart; i <= btMaxLength; i++) {
-            if (document.getElementById(`myButton${i}`)) {
-                button = document.getElementById(`myButton${i}`);
-                if (button) {
-                    let num1: number = button.name.substring(0, 1); // spineObj[n]
-                    let num2: number = button.name.substring(1, 2); // ex: aim, death, idle ...
-                    button.addEventListener(
-                        "click",
-                        {
-                            animNum1: num1,
-                            animNum2: num2,
-                            handleEvent: playAnimation,
-                            this: button,
-                        },
-                        false
-                    );
-                }
-            }
-        }
-    });
-
-    /**
-     * Play spine animation by anime name
-     * @param { object } animation object
-     */
-    let playAnimation = (obj: any) => {
+    let refreshAnimation = (obj: any) => {
         // console.log("playAnimation()", obj);
         let num1: number = obj.animNum1;
         let num2: number = obj.animNum2;
 
-        let animeObj: Spine = spineObj[num1];
+        if (current_spine !== null) {
+            container.removeChild(current_spine);
+        }
+
+        current_spine = new Spine(
+            resources[`spineCharacter1`].spineData
+        );
+        let sp = current_spine;
+
+        let zoom = current_scale / 100;
+        sp.scale.x = zoom;
+        sp.scale.y = zoom;
+
+        // console.log(current_point_pos);
+        // console.log(zoom);
+        // console.log(sp);
+
+        sp.position.x = (current_point_pos.x === 0) ?
+            WIDTH / 2 + sp.width * zoom / 2 :
+            current_point_pos.x;
+        sp.position.y = (current_point_pos.y === 0) ?
+            HEIGHT / 2 + sp.height * zoom / 2 :
+            current_point_pos.y + sp.height / 2;
+
+
+        // sp.x = (current_point_pos.x !== 0) ? current_point_pos.x : WIDTH / 2;
+        // sp.y = (current_point_pos.y !== 0) ? HEIGHT / 2 + sp.height / 2 : current_point_pos.y;
+        // sp.y = HEIGHT / 2 + sp.height / 2; //+ sp.height / 2; // HEIGHT / 2; // + sp.height / 2;
+        SP_HEIGHT = sp.height;
+
+        // sp.skeleton.setSkinByName("Normal_NoGun");
+        // sp.skeleton.setSkinByName("Normal");
+
+        sp.pivot.x = 0.5;
+        sp.pivot.y = 0.5;
+        sp.interactive = true;
+        sp.buttonMode = true;
+        sp.on("pointerdown", onDragStart)
+            .on("pointerup", onDragEnd)
+            .on("pointerupoutside", onDragEnd)
+            .on("pointermove", onDragMove);
+        container.addChild(sp);
+
         let animeName: string = anim_ary[num2];
 
         if (animeName === "") {
@@ -289,7 +334,29 @@
         }
 
         // set timescale
-        animeObj.state.timeScale = GAMES.ANIME_TIME_SCALE;
+        sp.state.timeScale = anime_time_scale;
+
+        // let current_skin = skin_ary[current_skin_id].name;
+        if (current_skin_name !== null) {
+            sp.skeleton.setSkinByName(current_skin_name);
+        }
+    };
+
+    /**
+     * Play spine animation by anime name
+     * @param { object } animation object
+     */
+    let playAnimation = (obj: any) => {
+        refreshAnimation(obj);
+
+        let num1: number = obj.animNum1;
+        let num2: number = obj.animNum2;
+
+        if (current_spine === null) {
+            return;
+        }
+        let animeObj: Spine = current_spine;
+        let animeName: string = anim_ary[num2];
 
         // animeObj.drawDebug = debug;
         // animeObj.drawBones = bones;
@@ -301,12 +368,15 @@
         // animeObj.drawBoundingBoxes = boundingBoxes;
 
         // play anime
-        animeObj.state.setAnimation(0, animeName, GAMES.ANIME_LOOP);
+        animeObj.state.setAnimation(0, animeName, anime_loop);
+
+        current_animation = current_model.animations[animeName];
 
         // clear text
         if (text_animationName) {
             clearText(text_animationName);
         }
+
         // show anime name text
         displayAnimeName(num1, num2);
     };
@@ -338,14 +408,36 @@
     let onDragMove = (e: PIXI.InteractionEvent) => {
         if (isDragging) {
             let sp: PIXI.DisplayObject = e.currentTarget;
-            const point: { x: number; y: number } = e.data.global;
-            sp.x = point.x;
-            sp.y = point.y + SP_HEIGHT / 2;
+            let pos: { x: number; y: number } = e.data.global;
+
+            sp.x = pos.x;
+            sp.y = pos.y + sp.height / 2;
+
+
+            current_point_pos = {
+                x: sp.position.x,
+                y: sp.position.y,
+            }
+            // console.log(current_point_pos);
+            // console.log(current_scale /100);
+            // console.log(sp.position);
         }
     };
 
 
     onMount(() => {
+        stage_config.subscribe(obj => {
+            WIDTH = obj.width;
+            HEIGHT = obj.height;
+            BG_COLOR = obj.bg_color;
+        });
+
+        game_config.subscribe(obj => {
+            fps = obj.fps;
+            anime_loop = obj.anime_loop;
+            anime_time_scale = obj.anime_time_scale;
+        });
+
         WIDTH = window.innerWidth - (200 + 48);
         HEIGHT = window.innerHeight - (64);
 
@@ -405,8 +497,9 @@
         // load
 
         loader.add("spineCharacter1", ASSET_SPINE1, spineLoaderOptions); // spine ver. 3.8 over must
-        loader.load((loader: PIXI.Loader, resources: any) => {
-            console.log(loader);
+        loader.load((loader: PIXI.Loader, rc: any) => {
+            // console.log(loader);
+            resources = rc;
             console.log(resources);
 
             if (ASSET_PATTERN !== "") {
@@ -438,28 +531,28 @@
             setTextAnimeTimeScale();
             setTextAnimeLoop();
 
-            for (let i: number = 0; i <= SPINEOBJ_NUM - 1; i++) {
-                spineObj[i] = new Spine(
-                    resources[`spineCharacter${i + 1}`].spineData
-                );
-                let sp: Spine = spineObj[i];
-                sp.x = WIDTH / 2;
-                sp.y = HEIGHT / 2 + sp.height / 2;
-                SP_HEIGHT = sp.height;
-
-                // sp.skeleton.setSkinByName("Normal_NoGun");
-                sp.skeleton.setSkinByName("Normal");
-
-                sp.pivot.x = 0.5;
-                sp.pivot.y = 0.5;
-                sp.interactive = true;
-                sp.buttonMode = true;
-                sp.on("pointerdown", onDragStart)
-                    .on("pointerup", onDragEnd)
-                    .on("pointerupoutside", onDragEnd)
-                    .on("pointermove", onDragMove);
-                container.addChild(sp);
-            }
+            // for (let i: number = 0; i <= SPINEOBJ_NUM - 1; i++) {
+            //     spineObj[i] = new Spine(
+            //         resources[`spineCharacter${i + 1}`].spineData
+            //     );
+            //     let sp: Spine = spineObj[i];
+            //     sp.x = WIDTH / 2;
+            //     sp.y = HEIGHT / 2 + sp.height / 2;
+            //     SP_HEIGHT = sp.height;
+            //
+            //     // sp.skeleton.setSkinByName("Normal_NoGun");
+            //     // sp.skeleton.setSkinByName("Normal");
+            //
+            //     sp.pivot.x = 0.5;
+            //     sp.pivot.y = 0.5;
+            //     sp.interactive = true;
+            //     sp.buttonMode = true;
+            //     sp.on("pointerdown", onDragStart)
+            //         .on("pointerup", onDragEnd)
+            //         .on("pointerupoutside", onDragEnd)
+            //         .on("pointermove", onDragMove);
+            //     container.addChild(sp);
+            // }
 
             // app start
             requestAnimationFrame(animate);
@@ -476,10 +569,24 @@
     function selectAnimation(name: string, id: number) {
         let animeObj: { [s: string]: number } = {animNum1: 0, animNum2: id};
         lastAnimeObj = animeObj;
-        playAnimation(animeObj);
+        playState();
+    }
+
+    function selectAnimationSkin(name: string, id: number) {
+        current_skin_name = name;
+        playState();
     }
 
     function refreshState() {
+        clearText(text_anime_loop);
+
+        setTextAnimeLoop();
+        if (lastAnimeObj !== undefined) {
+            refreshAnimation(lastAnimeObj);
+        }
+    }
+
+    function playState() {
         clearText(text_anime_loop);
 
         setTextAnimeLoop();
@@ -491,6 +598,16 @@
     function handleAnimationMessage(event) {
         // TODO: check types !
         selectAnimation(event.detail.name, event.detail.id);
+        playState();
+    }
+
+    function handleSkinChange(event) {
+        selectAnimationSkin(event.detail.name, event.detail.id);
+        playState();
+    }
+
+    function handleSpeedChange(event) {
+        playState();
     }
 
 
@@ -515,27 +632,43 @@
     let meshTriangles = false;
     let paths = false;
     let boundingBoxes = false;
+
+    const handleWheel = e => {
+        if (e.deltaY > 0) {
+            current_scale += 10;
+        } else {
+            current_scale -= 10;
+        }
+        e.preventDefault();
+        refreshState();
+    };
 </script>
 
 <svelte:window bind:innerWidth={WIDTH} bind:innerHeight={HEIGHT} />
 
-<div class="workspace">
+<div class="workspace{(inspector_visible)?' inspected':''}">
     <div class="navbar-left flexr">
 
     </div>
 
     <div class="mainblock">
-        <div class="canvas">
+        <div class="canvas" on:wheel={handleWheel}>
             <canvas bind:this={view}></canvas>
+        </div>
+
+        <div class="inspector{(inspector_visible)? ' open' : ''}">
+
+            <div class="ins-body">
+                <Timeline bind:animation={current_animation} bind:opened={inspector_visible}/>
+            </div>
+
+            <div class="ins-ignored"></div>
+
         </div>
     </div>
 
 
     <div class="navbar-right flexr">
-        <label>
-            <input type=checkbox bind:checked={GAMES.ANIME_LOOP} on:change={refreshState}>
-            Loop
-        </label>
 <!--        <label>-->
 <!--            <input type=checkbox bind:checked={debug} on:change={refreshState}>-->
 <!--            Debug-->
@@ -568,25 +701,46 @@
 <!--            <input type=checkbox bind:checked={boundingBoxes} on:change={refreshState}>-->
 <!--            Bounding Boxes-->
 <!--        </label>-->
-
-        <AnimationBrowser bind:animations={animations} on:message={handleAnimationMessage}/>
+        <SpeedTab bind:loop={anime_loop} on:speedChange={handleSpeedChange}/>
+        <AnimationBrowser bind:animations={animations} on:animationChange={handleAnimationMessage}/>
+        <SkinsBrowser bind:skins={skins} on:skinChange={handleSkinChange}/>
     </div>
 </div>
 
 
+
+
 <style>
+    .mainblock {
+        background: black;
+    }
 
     @media (min-width: 926px) {
         .workspace {
             display: grid;
-            grid-template-columns: 32px auto 1fr;
+            grid-template-columns: 32px auto 200px;
             grid-template-rows: 100%;
+        }
+
+        .inspector {
+            display: grid;
+            grid-template-columns: auto calc(200px + 32px);
+            grid-template-rows: 100%;
+            background-color: #121212;
+        }
+
+        .ins-body {
+            height: 100%;
         }
     }
 
     .workspace {
-        height: calc(100% - 54px);
+        max-height: calc(100vh - 54px);
     }
+
+    /*.workspace.inspected {*/
+    /*    height: calc(100vh - 30% - 54px);*/
+    /*}*/
 
     canvas {
         /*width: 100%;*/
@@ -600,10 +754,25 @@
 
     .navbar-right, .navbar-left {
         flex-direction: column;
+        z-index: 80;
     }
 
     .navbar-right {
         margin-left: auto;
-        width: 200px;
+        /*width: 200px;*/
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .inspector {
+        width: 100%;
+        /* height: 100%; */
+        position: fixed;
+        bottom: 0;
+        /*overflow-x: hidden;*/
+        /*overflow-y: auto;*/
+    }
+    .inspector.open {
+        height: 438px;
     }
 </style>

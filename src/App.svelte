@@ -25,7 +25,13 @@
 
 	@media (min-width: 640px) {
 		main {
-			max-width: none;
+			max-width: 100%;
+			height: 100%;
+			width: 100%;
+			flex-direction: column;
+			display: grid;
+			grid-template-rows: 48px auto 0;
+			grid-template-columns: 100%;
 		}
 	}
 </style>
