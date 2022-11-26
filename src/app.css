@@ -1,0 +1,24 @@
+:root {
+  --accent: #a6e1dd;
+  --bg: #121212;
+  --bg-semi: #373737;
+  --bg-dark: #020202;
+  --text: #dfdfdf;
+}
+
+html,
+body {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+input,
+button,
+select,
+textarea {
+  background-color: #3b3b3b;
+  color: #fff;
+  border: 1px solid var(--bg-semi);
+  border-radius: 0.5rem;
+  outline-style: none;
+}
