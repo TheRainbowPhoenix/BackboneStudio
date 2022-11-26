@@ -27,7 +27,26 @@
     opened = !opened;
   }
 
+  function pad(num: number, size: number = 2): string {
+    let p: string = num.toString();
+    while (p.length < size) p = "0" + num;
+    return p;
+  }
+
+  let pointerX = 0;
+
+  let c_controls: HTMLDivElement;
+
+  function controlsMouseMove(event: MouseEvent) {
+    var rect = c_controls.getBoundingClientRect();
+
+    console.log(event.clientX - rect.left);
+    pointerX = (event.clientX - rect.left) | 0;
+  }
+
+  // TIME CONFIG
   let scale = 400;
+  let step = 4;
 </script>
 
 <BaseTab name="Timeline" height={opened ? "400px" : "0px"}>
@@ -60,9 +79,29 @@
         {/each}
       </div>
 
-      <div class="item-controls">
+      <div
+        class="item-controls"
+        bind:this={c_controls}
+        on:mousemove={controlsMouseMove}
+      >
         <div class="item-timepoint">
-          <span>0:00</span>
+          <!-- Time is 0~N float ? here 2s hardcoded -->
+          {#each Array.from(Array(2 * step + 1).keys()) as tm}
+            <span
+              class="timepoint"
+              style="transform: translateX({(tm / step) * scale || '0'}px)"
+            >
+              {pad((tm / step) | 0)}:{pad((tm % step) * (60 / step))}
+            </span>
+          {/each}
+        </div>
+        <div
+          class="pointer"
+          style="transform: translateX({pointerX - 8 > 0
+            ? (((pointerX - 8) / 10) | 0) * 10
+            : '0'}px);"
+        >
+          <span />
         </div>
         <div class="nodes">
           {#each animationBones as bone, i}
@@ -170,13 +209,47 @@
     min-height: 22px;
     line-height: 22px;
     background: #262626;
-    padding: 2px 8px;
+    padding: 2px 0px;
     overflow: hidden;
+    position: relative;
+  }
+
+  .item-timepoint .timepoint::before {
+    content: "";
+    height: 18px;
+    width: 1px;
+    background: #887878;
+    display: inline-block;
+    position: absolute;
+    left: 5px;
+  }
+
+  .item-timepoint .timepoint {
+    position: absolute;
+    padding-left: 8px;
   }
 
   .item-controls {
     flex: 1;
     position: relative;
     overflow: hidden;
+  }
+
+  .pointer {
+    position: absolute;
+    top: 14px;
+    left: 1px;
+    height: 100%;
+    padding-top: 2px;
+    /* cursor: ew-resize; */
+    border: 4px solid transparent;
+    z-index: 1;
+  }
+
+  .pointer span {
+    display: inline-block;
+    width: 1px;
+    background-color: #dfdfdf;
+    height: 100%;
   }
 </style>
